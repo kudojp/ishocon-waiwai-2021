@@ -196,7 +196,7 @@ def get_index():
         product['description'] = product['description'][:70]
         product['created_at'] = to_jst(product['created_at'])
         product['comments'] = product_to_comments[product['id']][:5]
-        product['comments_count'] = get_comments_count(product['id'])
+        product['comments_count'] = len(product_to_comments[product['id']])
 
     return render_template('index.html', products=products, current_user=current_user())
 
@@ -205,12 +205,12 @@ def get_index():
 def get_mypage(user_id):
     cur = db().cursor()
     cur.execute("""
-SELECT p.id, p.name, p.description, p.image_path, p.price, h.created_at
-FROM histories as h
-LEFT OUTER JOIN products as p
-ON h.product_id = p.id
-WHERE h.user_id = {}
-ORDER BY h.id DESC
+    SELECT p.id, p.name, p.description, p.image_path, p.price, h.created_at
+    FROM histories as h
+    LEFT OUTER JOIN products as p
+    ON h.product_id = p.id
+    WHERE h.user_id = {}
+    ORDER BY h.id DESC
 """.format(str(user_id)))
 
     products = cur.fetchall()
