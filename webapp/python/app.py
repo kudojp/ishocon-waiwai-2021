@@ -5,6 +5,7 @@ import pathlib
 import html
 import urllib
 import datetime
+from collections import defaultdict
 
 static_folder = pathlib.Path(__file__).resolve().parent / 'public'
 print(static_folder)
@@ -90,7 +91,6 @@ def update_last_login(user_id):
     cur = db().cursor()
     cur.execute('UPDATE users SET last_login = %s WHERE id = %s', (datetime.datetime.now(), user_id,))
 
-
 def get_comments(product_id):
     cur = db().cursor()
     cur.execute("""
@@ -104,6 +104,26 @@ LIMIT 5
 """.format(product_id))
 
     return cur.fetchall()
+
+def get_batch_comments(products):
+    product_ids = list(map(lambda x: str(x['id']), products))
+    cur = db().cursor()
+    cur.execute("""
+        SELECT *
+        FROM comments as c
+        INNER JOIN users as u
+        ON c.user_id = u.id
+        WHERE c.product_id IN ({})
+        ORDER BY c.created_at DESC
+        """.format(', '.join(product_ids)))
+
+    comments = cur.fetchall()
+    product_id_to_comments = defaultdict(list)
+
+    for comment in comments:
+        product_id_to_comments[comment['product_id']].append(comment)
+
+    return product_id_to_comments
 
 
 def get_comments_count(product_id):
@@ -171,10 +191,11 @@ def get_index():
     cur.execute("SELECT * FROM products ORDER BY id DESC LIMIT 50 OFFSET {}".format(page * 50))
     products = cur.fetchall()
 
+    product_to_comments = get_batch_comments(products)
     for product in products:
         product['description'] = product['description'][:70]
         product['created_at'] = to_jst(product['created_at'])
-        product['comments'] = get_comments(product['id'])
+        product['comments'] = product_to_comments[product['id']][:5]
         product['comments_count'] = get_comments_count(product['id'])
 
     return render_template('index.html', products=products, current_user=current_user())
