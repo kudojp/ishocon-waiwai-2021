@@ -21,4 +21,4 @@ alp
 alp_linux_amd64.zip.1
 gocode/
 webapp/python/.vscode/
-webapp/python/__pycache*
+webapp/python/__pycache__/*
